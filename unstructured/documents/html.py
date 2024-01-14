@@ -63,6 +63,7 @@ class TagsMixin:
         links: Sequence[Link] = [],
         emphasized_texts: Sequence[Dict[str, str]] = [],
         text_as_html: Optional[str] = None,
+        anchor_ids: Sequence[Dict[str, str]] = [],
         **kwargs: Any,
     ):
         if tag is None:
@@ -73,6 +74,7 @@ class TagsMixin:
         self.links = links
         self.emphasized_texts = emphasized_texts
         self.text_as_html = text_as_html
+        self.anchor_ids = anchor_ids
         super().__init__(*args, **kwargs)
 
 
@@ -181,6 +183,7 @@ class HTMLDocument(XMLDocument):
                 elif _is_container_with_text(tag_elem):
                     links = _get_links_from_tag(tag_elem)
                     emphasized_texts = _get_emphasized_texts_from_tag(tag_elem)
+                    anchor_ids = _get_achorids_from_tag(tag_elem)
                     # -- having text is guaranteed by `_is_container_with_text()` --
                     assert tag_elem.text is not None
                     element = _text_to_element(
@@ -190,6 +193,7 @@ class HTMLDocument(XMLDocument):
                         depth=0,
                         links=links,
                         emphasized_texts=emphasized_texts,
+                        anchor_ids=anchor_ids,
                     )
                     if element is not None:
                         page.elements.append(element)
@@ -389,6 +393,25 @@ def _get_emphasized_texts_from_tag(tag_elem: etree._Element) -> List[Dict[str, s
 
     return emphasized_texts
 
+def _get_achorids_from_tag(tag_elem: etree._Element) -> List[Dict[str, str]]:
+    """
+    Get anchor id from tag element
+    for example:
+    from tag <p xmatrix-anchor-idx="3647" data-omnivore-anchor-idx="3647"> get anchor id 3647
+    """
+    anchor_ids: List[Dict[str, str]] = []
+    tags_to_track = ["p", "div", "span", "b", "i"]
+    if tag_elem.tag in tags_to_track:
+        anchor_id = tag_elem.attrib.get("xmatrix-anchor-idx")
+        if anchor_id:
+            anchor_ids.append({"anchor_id": anchor_id, "tag": tag_elem.tag})
+    for descendant_tag_elem in tag_elem.iterdescendants(*tags_to_track):
+        anchor_id = descendant_tag_elem.attrib.get("xmatrix-anchor-idx")
+        if anchor_id:
+            anchor_ids.append({"anchor_id": anchor_id, "tag": descendant_tag_elem.tag})
+    return anchor_ids
+
+
 
 def _parse_tag(
     tag_elem: etree._Element,
@@ -402,6 +425,7 @@ def _parse_tag(
     ancestortags: Tuple[str, ...] = tuple(el.tag for el in tag_elem.iterancestors())[::-1]
     links = _get_links_from_tag(tag_elem)
     emphasized_texts = _get_emphasized_texts_from_tag(tag_elem)
+    anchor_ids = _get_achorids_from_tag(tag_elem)
 
     depth = (
         # TODO(newel): Check the surrounding divs to see if should be root level
@@ -425,6 +449,7 @@ def _parse_tag(
         links=links,
         emphasized_texts=emphasized_texts,
         depth=depth,
+        anchor_ids=anchor_ids,
     )
 
 
@@ -435,6 +460,7 @@ def _text_to_element(
     depth: int,
     links: List[Link] = [],
     emphasized_texts: List[Dict[str, str]] = [],
+    anchor_ids: List[Dict[str, str]] = [],
 ) -> Optional[Element]:
     """Produce a document-element of the appropriate sub-type for `text`."""
     if is_bulleted_text(text):
@@ -447,6 +473,7 @@ def _text_to_element(
             links=links,
             emphasized_texts=emphasized_texts,
             metadata=ElementMetadata(category_depth=depth),
+            anchor_ids=anchor_ids,
         )
     elif is_us_city_state_zip(text):
         return HTMLAddress(
@@ -455,6 +482,7 @@ def _text_to_element(
             ancestortags=ancestortags,
             links=links,
             emphasized_texts=emphasized_texts,
+            anchor_ids=anchor_ids,
         )
     elif is_email_address(text):
         return HTMLEmailAddress(
@@ -473,6 +501,7 @@ def _text_to_element(
             ancestortags=ancestortags,
             links=links,
             emphasized_texts=emphasized_texts,
+            anchor_ids=anchor_ids,
         )
     elif is_heading_tag(tag) or is_possible_title(text):
         return HTMLTitle(
@@ -482,6 +511,7 @@ def _text_to_element(
             links=links,
             emphasized_texts=emphasized_texts,
             metadata=ElementMetadata(category_depth=depth),
+            anchor_ids=anchor_ids,
         )
     else:
         return HTMLText(
@@ -490,6 +520,7 @@ def _text_to_element(
             ancestortags=ancestortags,
             links=links,
             emphasized_texts=emphasized_texts,
+            anchor_ids=anchor_ids,
         )
 
 
@@ -566,7 +597,7 @@ def _unfurl_break_tags(tag_elem: etree._Element) -> List[etree._Element]:
     return unfurled
 
 
-def _is_text_tag(tag_elem: etree._Element, max_predecessor_len: int = 5) -> bool:
+def _is_text_tag(tag_elem: etree._Element, max_predecessor_len: int = 10) -> bool:
     """True when `tag_element` potentially contains narrative text."""
     # NOTE(robinson) - Only consider elements with limited depth. Otherwise,
     # it could be the text representation of a giant div
@@ -603,6 +634,7 @@ def _process_list_item(
         text = _construct_text(tag_elem)
         links = _get_links_from_tag(tag_elem)
         emphasized_texts = _get_emphasized_texts_from_tag(tag_elem)
+        anchor_ids = _get_achorids_from_tag(tag_elem)
         depth = len(
             [el for el in tag_elem.iterancestors() if el.tag in LIST_TAGS + LIST_ITEM_TAGS],
         )
@@ -613,6 +645,7 @@ def _process_list_item(
                 links=links,
                 emphasized_texts=emphasized_texts,
                 metadata=ElementMetadata(category_depth=depth),
+                anchor_ids = anchor_ids,
             ),
             tag_elem,
         )

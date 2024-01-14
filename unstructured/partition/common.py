@@ -318,6 +318,9 @@ def _add_element_metadata(
         if emphasized_texts
         else None
     )
+    
+    anchor_ids=([element.anchor_ids if hasattr(element, "anchor_ids") and len(element.anchor_ids) > 0 else None])
+
     depth = element.metadata.category_depth if element.metadata.category_depth else None
 
     metadata = ElementMetadata(
@@ -335,6 +338,7 @@ def _add_element_metadata(
         category_depth=depth,
         image_path=image_path,
         languages=languages,
+        anchor_ids=anchor_ids,
     )
     element.metadata.update(metadata)
     if detection_origin is not None:

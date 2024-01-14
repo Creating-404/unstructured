@@ -239,6 +239,7 @@ class ElementMetadata:
         subject: Optional[str] = None,
         text_as_html: Optional[str] = None,
         url: Optional[str] = None,
+        anchor_ids: Optional[List[str]] = None,
     ) -> None:
         self.attached_to_filename = attached_to_filename
         self.category_depth = category_depth
@@ -276,6 +277,9 @@ class ElementMetadata:
         self.subject = subject
         self.text_as_html = text_as_html
         self.url = url
+        
+        #----
+        self.anchor_ids = anchor_ids
 
     def __eq__(self, other: object) -> bool:
         """Implments equivalence, like meta == other_meta.
