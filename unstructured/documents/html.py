@@ -404,11 +404,11 @@ def _get_achorids_from_tag(tag_elem: etree._Element) -> List[Dict[str, str]]:
     if tag_elem.tag in tags_to_track:
         anchor_id = tag_elem.attrib.get("xmatrix-anchor-idx")
         if anchor_id:
-            anchor_ids.append({"anchor_id": anchor_id, "tag": tag_elem.tag})
-    for descendant_tag_elem in tag_elem.iterdescendants(*tags_to_track):
+            anchor_ids.append({"anchor_id": anchor_id, "tag": tag_elem.tag, "text": tag_elem.text})
+    for descendant_tag_elem in tag_elem.iter():#.iterdescendants(*tags_to_track):
         anchor_id = descendant_tag_elem.attrib.get("xmatrix-anchor-idx")
         if anchor_id:
-            anchor_ids.append({"anchor_id": anchor_id, "tag": descendant_tag_elem.tag})
+            anchor_ids.append({"anchor_id": anchor_id, "tag": descendant_tag_elem.tag, "text": descendant_tag_elem.text})
     return anchor_ids
 
 
