@@ -406,6 +406,8 @@ def _get_achorids_from_tag(tag_elem: etree._Element) -> List[Dict[str, str]]:
         if anchor_id:
             anchor_ids.append({"anchor_id": anchor_id, "tag": tag_elem.tag, "text": tag_elem.text})
     for descendant_tag_elem in tag_elem.iter():#.iterdescendants(*tags_to_track):
+        if descendant_tag_elem.tag == tag_elem.tag:
+            continue
         anchor_id = descendant_tag_elem.attrib.get("xmatrix-anchor-idx")
         if anchor_id:
             anchor_ids.append({"anchor_id": anchor_id, "tag": descendant_tag_elem.tag, "text": descendant_tag_elem.text})
@@ -545,7 +547,7 @@ def _is_container_with_text(tag_elem: etree._Element) -> bool:
 
 def is_narrative_tag(text: str, tag: str) -> bool:
     """Uses tag information to infer whether text is narrative."""
-    return tag not in HEADING_TAGS and is_possible_narrative_text(text)
+    return tag not in HEADING_TAGS ##and is_possible_narrative_text(text)
 
 
 def is_heading_tag(tag: str) -> bool:
